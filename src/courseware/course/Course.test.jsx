@@ -25,6 +25,10 @@ jest.mock(
     return <div className="fake-chat" data-testid={mockChatTestId}>Chat contents {courseId} </div>;
   },
 );
+jest.mock('@openedx/paragon', () => ({
+  ...jest.requireActual('@openedx/paragon'),
+  useWindowSize: jest.fn(() => ({ width: 1024 })),
+}));
 
 const recordFirstSectionCelebration = jest.fn();
 // eslint-disable-next-line no-import-assign
@@ -152,21 +156,22 @@ describe('Course', () => {
     const discussionsTrigger = await screen.getByRole('button', { name: /Show discussions tray/i });
     const discussionsSideBar = await waitFor(() => screen.findByTestId('sidebar-DISCUSSIONS'));
 
-    expect(discussionsSideBar).not.toHaveClass('d-none');
-
-    await act(async () => {
-      fireEvent.click(discussionsTrigger);
-    });
-    await expect(discussionsSideBar).toHaveClass('d-none');
+    expect(discussionsSideBar).toHaveClass('d-none');
 
     await act(async () => {
       fireEvent.click(discussionsTrigger);
     });
     await expect(discussionsSideBar).not.toHaveClass('d-none');
+
+    await act(async () => {
+      fireEvent.click(discussionsTrigger);
+    });
+    await expect(discussionsSideBar).toHaveClass('d-none');
   });
 
   it('displays discussions sidebar when unit changes', async () => {
-    const testStore = await initializeTestStore();
+    const courseHomeMetadata = Factory.build('courseHomeMetadata', { verified_mode: null });
+    const testStore = await initializeTestStore({ courseHomeMetadata }, false);
     const { courseware, models } = testStore.getState();
     const { courseId, sequenceId } = courseware;
     const testData = {

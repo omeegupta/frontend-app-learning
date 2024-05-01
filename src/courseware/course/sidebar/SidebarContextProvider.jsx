@@ -1,12 +1,30 @@
 import { breakpoints, useWindowSize } from '@openedx/paragon';
 import PropTypes from 'prop-types';
-import React, { useState, useMemo, useCallback } from 'react';
+import React, {
+  useState, useMemo, useCallback, useEffect,
+} from 'react';
 
 import { useModel } from '../../../generic/model-store';
 import { getLocalStorage, setLocalStorage } from '../../../data/localStorage';
 
 import SidebarContext from './SidebarContext';
 import { SIDEBARS } from './sidebars';
+
+const getSidebar = ({
+  shouldDisplaySidebarOpen,
+  query,
+  verifiedMode,
+}) => {
+  let sidebar;
+  if (verifiedMode) {
+    sidebar = SIDEBARS.NOTIFICATIONS.ID;
+  } else {
+    sidebar = shouldDisplaySidebarOpen || query.get('sidebar') === 'true'
+      ? SIDEBARS.DISCUSSIONS.ID
+      : null;
+  }
+  return sidebar;
+};
 
 const SidebarProvider = ({
   courseId,
@@ -18,20 +36,26 @@ const SidebarProvider = ({
   const shouldDisplaySidebarOpen = useWindowSize().width > breakpoints.medium.minWidth;
   const query = new URLSearchParams(window.location.search);
 
-  let initialSidebar = shouldDisplayFullScreen ? getLocalStorage(`sidebar.${courseId}`) : null;
-  if (!initialSidebar) {
-    if (verifiedMode) {
-      initialSidebar = SIDEBARS.NOTIFICATIONS.ID;
-    } else {
-      initialSidebar = shouldDisplaySidebarOpen || query.get('sidebar') === 'true'
-        ? SIDEBARS.DISCUSSIONS.ID
-        : null;
-    }
-  }
-
+  // for mobile users, we want to persist the sidebar state
+  const initialSidebar = shouldDisplayFullScreen ? getLocalStorage(`sidebar.${courseId}`) : getSidebar({
+    shouldDisplaySidebarOpen,
+    query,
+    verifiedMode,
+  });
   const [currentSidebar, setCurrentSidebar] = useState(initialSidebar);
   const [notificationStatus, setNotificationStatus] = useState(getLocalStorage(`notificationStatus.${courseId}`));
   const [upgradeNotificationCurrentState, setUpgradeNotificationCurrentState] = useState(getLocalStorage(`upgradeNotificationCurrentState.${courseId}`));
+
+  useEffect(() => {
+    // do not retrigger the sidebar on unit change for mobile view
+    if (!shouldDisplayFullScreen) {
+      setCurrentSidebar(getSidebar({
+        shouldDisplaySidebarOpen,
+        query,
+        verifiedMode,
+      }));
+    }
+  }, [unitId]);
 
   const onNotificationSeen = useCallback(() => {
     setNotificationStatus('inactive');
