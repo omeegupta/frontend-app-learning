@@ -1,8 +1,6 @@
 import { breakpoints, useWindowSize } from '@openedx/paragon';
 import PropTypes from 'prop-types';
-import React, {
-  useEffect, useState, useMemo, useCallback,
-} from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 
 import { useModel } from '../../../generic/model-store';
 import { getLocalStorage, setLocalStorage } from '../../../data/localStorage';
@@ -19,15 +17,21 @@ const SidebarProvider = ({
   const shouldDisplayFullScreen = useWindowSize().width < breakpoints.large.minWidth;
   const shouldDisplaySidebarOpen = useWindowSize().width > breakpoints.medium.minWidth;
   const query = new URLSearchParams(window.location.search);
-  const initialSidebar = (shouldDisplaySidebarOpen || query.get('sidebar') === 'true') ? SIDEBARS.DISCUSSIONS.ID : null;
+
+  let initialSidebar = shouldDisplayFullScreen ? getLocalStorage(`sidebar.${courseId}`) : null;
+  if (!initialSidebar) {
+    if (verifiedMode) {
+      initialSidebar = SIDEBARS.NOTIFICATIONS.ID;
+    } else {
+      initialSidebar = shouldDisplaySidebarOpen || query.get('sidebar') === 'true'
+        ? SIDEBARS.DISCUSSIONS.ID
+        : null;
+    }
+  }
+
   const [currentSidebar, setCurrentSidebar] = useState(initialSidebar);
   const [notificationStatus, setNotificationStatus] = useState(getLocalStorage(`notificationStatus.${courseId}`));
   const [upgradeNotificationCurrentState, setUpgradeNotificationCurrentState] = useState(getLocalStorage(`upgradeNotificationCurrentState.${courseId}`));
-
-  useEffect(() => {
-    // if the user hasn't purchased the course, show the notifications sidebar
-    setCurrentSidebar(verifiedMode ? SIDEBARS.NOTIFICATIONS.ID : SIDEBARS.DISCUSSIONS.ID);
-  }, [unitId]);
 
   const onNotificationSeen = useCallback(() => {
     setNotificationStatus('inactive');
@@ -36,7 +40,9 @@ const SidebarProvider = ({
 
   const toggleSidebar = useCallback((sidebarId) => {
     // Switch to new sidebar or hide the current sidebar
-    setCurrentSidebar(sidebarId === currentSidebar ? null : sidebarId);
+    const newSidebar = sidebarId === currentSidebar ? null : sidebarId;
+    setCurrentSidebar(newSidebar);
+    setLocalStorage(`sidebar.${courseId}`, newSidebar);
   }, [currentSidebar]);
 
   const contextValue = useMemo(() => ({
