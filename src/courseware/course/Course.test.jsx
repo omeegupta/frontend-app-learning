@@ -2,7 +2,7 @@ import React from 'react';
 
 import { Factory } from 'rosie';
 
-import { breakpoints } from '@openedx/paragon';
+import { breakpoints, useWindowSize } from '@openedx/paragon';
 
 import {
   act, fireEvent, getByRole, initializeTestStore, loadUnit, render, screen, waitFor,
@@ -27,7 +27,7 @@ jest.mock(
 );
 jest.mock('@openedx/paragon', () => ({
   ...jest.requireActual('@openedx/paragon'),
-  useWindowSize: jest.fn(() => ({ width: 1024 })),
+  useWindowSize: jest.fn(),
 }));
 
 const recordFirstSectionCelebration = jest.fn();
@@ -53,7 +53,9 @@ describe('Course', () => {
       sequenceId,
       unitId: Object.values(models.units)[0].id,
     });
-    global.innerWidth = breakpoints.extraLarge.minWidth;
+    useWindowSize.mockReturnValue({
+      width: breakpoints.extraLarge.minWidth,
+    });
   });
 
   afterAll(() => {
@@ -156,17 +158,17 @@ describe('Course', () => {
     const discussionsTrigger = await screen.getByRole('button', { name: /Show discussions tray/i });
     const discussionsSideBar = await waitFor(() => screen.findByTestId('sidebar-DISCUSSIONS'));
 
-    expect(discussionsSideBar).toHaveClass('d-none');
-
-    await act(async () => {
-      fireEvent.click(discussionsTrigger);
-    });
-    await expect(discussionsSideBar).not.toHaveClass('d-none');
+    expect(discussionsSideBar).not.toHaveClass('d-none');
 
     await act(async () => {
       fireEvent.click(discussionsTrigger);
     });
     await expect(discussionsSideBar).toHaveClass('d-none');
+
+    await act(async () => {
+      fireEvent.click(discussionsTrigger);
+    });
+    await expect(discussionsSideBar).not.toHaveClass('d-none');
   });
 
   it('displays discussions sidebar when unit changes', async () => {
@@ -371,7 +373,10 @@ describe('Course', () => {
   });
 
   it('does not display chat when screen is too narrow (mobile)', async () => {
-    global.innerWidth = breakpoints.extraSmall.minWidth;
+    // global.innerWidth = breakpoints.extraSmall.minWidth;
+    useWindowSize.mockReturnValue({
+      width: breakpoints.extraSmall.minWidth,
+    });
     const courseMetadata = Factory.build('courseMetadata', {
       learning_assistant_enabled: true,
       enrollment: { mode: 'verified' },
