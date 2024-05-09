@@ -23,7 +23,8 @@ function CourseGrade({ intl }) {
     },
   } = useModel('progress', courseId);
 
-  const passingGrade = Number((Math.min(...Object.values(gradeRange)) * 100).toFixed(0));
+  //const passingGrade = Number((Math.min(...Object.values(gradeRange)) * 100).toFixed(0));
+    const passingGrade = (gradeRange['Pass'] && gradeRange['Pass'] != "undefined")?(Number(gradeRange['Pass']*100)):(Number((Math.min(...Object.values(gradeRange)) * 100).toFixed(0)))
 
   const applyLockedOverlay = gradesFeatureIsFullyLocked ? 'locked-overlay' : '';
 
